@@ -1,7 +1,7 @@
 # PASS package
 # (c) kol, 2022
 # MIT licence
-
+import pyperclip
 import keyring
 import json
 import click
@@ -91,7 +91,9 @@ class PasswordStore:
     def get_login_pass(self, service: str, login: str = None) -> Tuple[str, str]:
         if not login: 
             login = self.default_login(service)
-        return login, keyring.get_password(self.PASS_KEY.format(service=service), login)
+        get_pass = keyring.get_password(self.PASS_KEY.format(service=service), login)
+        pyperclip.copy(get_pass)
+        return login, get_pass
 
     def set_pass(self, service: str, login: str = None, passwd: str = None) -> None:
         login = login or self.user
