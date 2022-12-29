@@ -17,7 +17,8 @@ class PasswordStore:
     PASS_KEY = 'kol.pass.{service}'
     DEFAULT_SERVICES = {
         'version': '1.0',
-        'services': defaultdict(list)
+        'services': defaultdict(list),
+        'enable_clipboard': False
     }
 
     def __init__(self):
@@ -30,10 +31,13 @@ class PasswordStore:
             meta = keyring.get_password(self.META_KEY, self.user)
             if meta is None:
                 self.__meta = self.DEFAULT_SERVICES
+                self.__meta['enable_clipboard'] = self.DEFAULT_SERVICES['enable_clipboard']
             else:
                 self.__meta = json.loads(meta)
                 if 'version' not in self.__meta:
                     self.__meta['version'] = self.DEFAULT_SERVICES['version']
+                if 'enable_clipboard' not in self.__meta:
+                    self.__meta['enable_clipboard'] = self.DEFAULT_SERVICES['enable_clipboard']
                 if 'services' not in self.__meta:
                     self.__meta['services'] = defaultdict(list)
                 else:
@@ -91,9 +95,7 @@ class PasswordStore:
     def get_login_pass(self, service: str, login: str = None) -> Tuple[str, str]:
         if not login: 
             login = self.default_login(service)
-        get_pass = keyring.get_password(self.PASS_KEY.format(service=service), login)
-        pyperclip.copy(get_pass)
-        return login, get_pass
+        return login, keyring.get_password(self.PASS_KEY.format(service=service), login)
 
     def set_pass(self, service: str, login: str = None, passwd: str = None) -> None:
         login = login or self.user
@@ -119,6 +121,8 @@ store = PasswordStore()
 
 @click.command(no_args_is_help=True)
 @click.option('-l', '--list', is_flag=True, help='List services and logins')
+@click.option('-e/-no-e', '--enable-clipboard/--no-enable-clipboard', 'enable_clipboard', is_flag=True, default=None, help='Copy password to clipboard')
+@click.option('-t', '--to-clipboard', 'to_clipboard', is_flag=True, default=False, help='Copy password to clipboard when enable_clipboard is disabled')
 @click.option('-a', '--add', help='Add service login. Use -u and -p to specify login and password')
 @click.option('-u', '--login', help='Login to store')
 @click.option('-p', '--password', help='Password to store')
@@ -129,7 +133,9 @@ store = PasswordStore()
 @click.option('--import', 'import_file', type=click.File('rt', lazy=True), 
     help='Import service logins from file (not implemented yet)')
 @click.option('--export', type=click.File('wt', lazy=True), help='Export service logins to file')
-def main(list, add, show, delete, sync, import_file, export, login, password):
+def main(list, enable_clipboard, to_clipboard, add, show, delete, sync, import_file, export, login, password):
+    if enable_clipboard in [True, False]:
+        store.meta['enable_clipboard'] = enable_clipboard
     if list:
         print('List of login and services stored in the system keyring:\n---')
         store.print_service_logins()
@@ -142,6 +148,8 @@ def main(list, add, show, delete, sync, import_file, export, login, password):
         if not passwd:
             print(f'Password for {login}@{show} is empty or not set')
         else:
+            if store.meta['enable_clipboard'] or to_clipboard:
+                pyperclip.copy(passwd)
             print(f'Password for {login}@{show} is {passwd}')
     elif delete:
         store.remove_pass(delete, login)
