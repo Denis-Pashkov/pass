@@ -84,6 +84,10 @@ class PasswordStore:
             self.meta['services'][service].append(login)
         self.save()
 
+    def remove_service(self, service: str) -> None:
+        self.services.pop(service, None)
+        self.save()
+
     def remove_service_login(self, service: str, login: str):
         if service in self.meta['services'] and login in self.meta['services'][service]:
             self.meta['services'][service] = [x for x in self.meta['services'][service] if x != login]
@@ -123,6 +127,7 @@ store = PasswordStore()
 @click.option('-l', '--list', is_flag=True, help='List services and logins')
 @click.option('-e/-no-e', '--enable-clipboard/--no-enable-clipboard', 'enable_clipboard', is_flag=True, default=None, help='Copy password to clipboard')
 @click.option('-t', '--to-clipboard', 'to_clipboard', is_flag=True, default=False, help='Copy password to clipboard when enable_clipboard is disabled')
+@click.option('-r', '--remove-service', 'remove_service', help='Remove service')
 @click.option('-a', '--add', help='Add service login. Use -u and -p to specify login and password')
 @click.option('-u', '--login', help='Login to store')
 @click.option('-p', '--password', help='Password to store')
@@ -133,7 +138,7 @@ store = PasswordStore()
 @click.option('--import', 'import_file', type=click.File('rt', lazy=True), 
     help='Import service logins from file (not implemented yet)')
 @click.option('--export', type=click.File('wt', lazy=True), help='Export service logins to file')
-def main(list, enable_clipboard, to_clipboard, add, show, delete, sync, import_file, export, login, password):
+def main(list, enable_clipboard, to_clipboard, remove_service, add, show, delete, sync, import_file, export, login, password):
     if enable_clipboard in [True, False]:
         store.meta['enable_clipboard'] = enable_clipboard
     if list:
@@ -160,6 +165,8 @@ def main(list, enable_clipboard, to_clipboard, add, show, delete, sync, import_f
         store.import_file(import_file)
     elif export:
         store.export(export)
+    elif remove_service:
+        store.remove_service(remove_service)
 
 if __name__ == '__main__':
     main()
