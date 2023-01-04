@@ -84,9 +84,13 @@ class PasswordStore:
             self.meta['services'][service].append(login)
         self.save()
 
-    def remove_service(self, service: str) -> None:
-        self.services.pop(service, None)
-        self.save()
+    def remove_service(self, service: str, f: bool) -> None:
+        if not bool(len(self.services[service])) or f:
+            self.services.pop(service, None)
+            self.save()
+        else:
+            print(f'Service "{service}" has not been deleted')
+            print('You can delete only the service without logins or using the -f flag to force the removal')
 
     def remove_service_login(self, service: str, login: str):
         if service in self.meta['services'] and login in self.meta['services'][service]:
@@ -128,6 +132,7 @@ store = PasswordStore()
 @click.option('-e/-no-e', '--enable-clipboard/--no-enable-clipboard', 'enable_clipboard', is_flag=True, default=None, help='Copy password to clipboard')
 @click.option('-t', '--to-clipboard', 'to_clipboard', is_flag=True, default=False, help='Copy password to clipboard when enable_clipboard is disabled')
 @click.option('-r', '--remove-service', 'remove_service', help='Remove service')
+@click.option('-f', '--forced', 'forced', is_flag=True, default=False, help='Force an action to be performed regardless of conflicts')
 @click.option('-a', '--add', help='Add service login. Use -u and -p to specify login and password')
 @click.option('-u', '--login', help='Login to store')
 @click.option('-p', '--password', help='Password to store')
@@ -138,7 +143,7 @@ store = PasswordStore()
 @click.option('--import', 'import_file', type=click.File('rt', lazy=True), 
     help='Import service logins from file (not implemented yet)')
 @click.option('--export', type=click.File('wt', lazy=True), help='Export service logins to file')
-def main(list, enable_clipboard, to_clipboard, remove_service, add, show, delete, sync, import_file, export, login, password):
+def main(list, enable_clipboard, to_clipboard, remove_service, forced, add, show, delete, sync, import_file, export, login, password):
     if enable_clipboard in [True, False]:
         store.meta['enable_clipboard'] = enable_clipboard
     if list:
@@ -166,7 +171,7 @@ def main(list, enable_clipboard, to_clipboard, remove_service, add, show, delete
     elif export:
         store.export(export)
     elif remove_service:
-        store.remove_service(remove_service)
+        store.remove_service(remove_service, forced)
 
 if __name__ == '__main__':
     main()
