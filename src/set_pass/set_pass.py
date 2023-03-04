@@ -123,7 +123,7 @@ class PasswordStore:
     def remove_pass(self, service: str, login: str = None) -> None:
         login = login or self.user
         keyring.delete_password(self.PASS_KEY.format(service=service), login)
-        store.remove_service_login(service, login)
+        self.remove_service_login(service, login)
 
 store = PasswordStore()
 
